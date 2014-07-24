@@ -3,7 +3,8 @@ from django.db import models
 # Create your models here.
 
 class BaseResource(models.Model):
-    Name = models.CharField(max_length=100, blank=False)
+    Name = models.CharField(max_length=100, blank=False, unique=True)
+    Comment = models.TextField(blank=True)
     def __unicode__(self):
         return self.Name
     class Meta:
@@ -66,3 +67,43 @@ class Pool(BaseResource):
     def __unicode__(self):
         return "%s [%s:%s]" % (self.Name, self.Storage, self.PoolType,)
 
+class Client(BaseResource):
+    MaximumConcurrentJobs = models.IntegerField(default=2)
+    FDPort = models.IntegerField(default=9102)
+    FDAddress = models.IPAddressField(default='0.0.0.0')
+    FDSouceAddress = models.IPAddressField()
+    SDConnectTimeout = models.IntegerField(default=30)
+    MaximumNetworkBufferSize = models.IntegerField(default=65536)
+    def __unicode__(self):
+        return "%s %s:%d" % (self.Name, self.FDAddress, self.FDPort)
+
+class Job(BaseResource):
+    BACKUP  = "Backup"
+    RESTORE = "Restore"
+    JOB_TYPES = (
+        (BACKUP, "Backup"),
+        (RESTORE, "Restore"),
+    )
+    FULL = "Full"
+    INCREMENTAL = "Incremental"
+    DIFFERENTIAL = "Differential"
+    JOB_LEVELS = (
+        (FULL, FULL),
+        (INCREMENTAL, INCREMENTAL),
+        (DIFFERENTIAL, DIFFERENTIAL),
+    )
+    Enabled = models.BooleanField(default=True)
+    Type = models.CharField(max_length=7, choices=JOB_TYPES, default=BACKUP)
+    Level = models.CharField(max_length=len(DIFFERENTIAL), choices=JOB_LEVELS, default=FULL)
+    Client = models.ForeignKey(Client, blank=False)
+    Pool = models.ForeignKey(Pool, blank=False)
+#    FullBackupPool = models.ForeignKey(Pool)
+#    DifferentalBackupPool = models.ForeignKey(Pool)
+#    IncrementalBackupPool = models.ForeignKey(Pool)
+    # Schedule
+    Storage = models.ForeignKey(Storage, blank=False)
+    def __unicode__(self):
+        return "%s of %s type by %s level on %s client" % (self.Name, self.Type, self.Level, self.Client)
+
+#class Job(JobDefs):
+#    JobDefs = models.ForeignKey(JobDefs)
