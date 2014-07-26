@@ -4,7 +4,7 @@ from django.db import models
 
 class BaseResource(models.Model):
     Name = models.CharField(max_length=100, blank=False, unique=True)
-    Comment = models.TextField(blank=True)
+    Comment = models.CharField(max_length=200, blank=True)
     def __unicode__(self):
         return self.Name
     class Meta:
@@ -19,7 +19,7 @@ class Director(BaseResource):
 class Console(BaseResource):
     Password = models.CharField(blank=False, max_length=100)
     Director = models.ForeignKey(Director, blank=False)
-    HeartBeatInterval = models.IntegerField(default=0)
+    HeartBeatInterval = models.IntegerField("Heartbeat Interval", default=0)
 
 class Device(BaseResource):
     FILE = "File"
@@ -34,7 +34,7 @@ class Device(BaseResource):
     DeviceType = models.CharField(max_length=4, choices=DEVICE_TYPES, default=FILE)
     MediaType = models.CharField(max_length=100)
     AutoChanger = models.BooleanField(default=False)
-    MaximumConcurrentJobs = models.IntegerField(default=5)
+    MaximumConcurrentJobs = models.IntegerField("Maximum Concurrent Jobs", default=5)
     def __unicode__(self):
         return "%s - %s" % (self.Name, self.DeviceType)
 
@@ -68,12 +68,12 @@ class Pool(BaseResource):
         return "%s [%s:%s]" % (self.Name, self.Storage, self.PoolType,)
 
 class Client(BaseResource):
-    MaximumConcurrentJobs = models.IntegerField(default=2)
-    FDPort = models.IntegerField(default=9102)
-    FDAddress = models.IPAddressField(default='0.0.0.0')
-    FDSouceAddress = models.IPAddressField()
-    SDConnectTimeout = models.IntegerField(default=30)
-    MaximumNetworkBufferSize = models.IntegerField(default=65536)
+    MaximumConcurrentJobs = models.IntegerField(default=2, blank=True)
+    FDPort = models.IntegerField(default=9102, blank=True)
+    FDAddress = models.IPAddressField(default='0.0.0.0', blank=True)
+    FDSouceAddress = models.IPAddressField(blank=True)
+    SDConnectTimeout = models.IntegerField(default=30, blank=True)
+    MaximumNetworkBufferSize = models.IntegerField(default=65536, blank=True)
     def __unicode__(self):
         return "%s %s:%d" % (self.Name, self.FDAddress, self.FDPort)
 
@@ -97,13 +97,44 @@ class Job(BaseResource):
     Level = models.CharField(max_length=len(DIFFERENTIAL), choices=JOB_LEVELS, default=FULL)
     Client = models.ForeignKey(Client, blank=False)
     Pool = models.ForeignKey(Pool, blank=False)
-#    FullBackupPool = models.ForeignKey(Pool)
-#    DifferentalBackupPool = models.ForeignKey(Pool)
-#    IncrementalBackupPool = models.ForeignKey(Pool)
-    # Schedule
     Storage = models.ForeignKey(Storage, blank=False)
     def __unicode__(self):
         return "%s of %s type by %s level on %s client" % (self.Name, self.Type, self.Level, self.Client)
 
-#class Job(JobDefs):
-#    JobDefs = models.ForeignKey(JobDefs)
+class FileSetOptions(BaseResource):
+    GZIP = "GZIP"
+    LZO = "LZO"
+    COMPRESSION_TYPES = (
+        (GZIP, GZIP),
+        (LZO , LZO),
+    )
+    SHA1 = "SHA1"
+    MD5  = "MD5"
+    SIGNATURE_TYPES = (
+        (MD5,  MD5),
+        (SHA1, SHA1),
+    )
+    Exclude = models.BooleanField(blank=False)
+    WildFile = models.TextField(blank=False)
+    Compression = models.CharField(max_length=4, choices=COMPRESSION_TYPES, default=GZIP)
+    Signature = models.CharField(max_length=4, choices=SIGNATURE_TYPES, default=MD5)
+    OneFs = models.BooleanField(default=False)
+    
+    def __unicode__(self):
+        return "%s, compression=%s, signature=%s" % (self.Name, self.Compression, self.Signature)
+
+class FileSetInclude(BaseResource):
+    File = models.TextField("List of included files",)
+
+class FileSetExclude(BaseResource):
+    File = models.TextField("List of excluded files",)
+
+class FileSet(BaseResource):
+    IgnoreFileSetChanges = models.BooleanField("Ignore FileSet Changes", default=False)
+    Options = models.ForeignKey(FileSetOptions, null=True, blank=True)
+    Include = models.ForeignKey(FileSetInclude, blank=False)
+    Exclude = models.ForeignKey(FileSetExclude, null=True, blank=True)
+    
+    def __unicode__(self):
+        return "%s o: %s, i: %s, e: %s" % (self.Name, self.Options, self.Include, self.Exclude)
+    
