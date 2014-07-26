@@ -5,6 +5,16 @@ from django.db import models
 class BaseResource(models.Model):
     Name = models.CharField(max_length=100, blank=False, unique=True)
     Comment = models.CharField(max_length=200, blank=True)
+    
+    def showResource(self):
+        result = """
+%s {
+%s
+}""" % (self.extraName(), self.fields)
+        pass
+    def extraName(self):
+        return self.__unicode__(self)
+        
     def __unicode__(self):
         return self.Name
     class Meta:
