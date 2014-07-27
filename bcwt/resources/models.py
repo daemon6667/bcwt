@@ -147,4 +147,6 @@ class FileSet(BaseResource):
     
     def __unicode__(self):
         return "%s o: %s, i: %s, e: %s" % (self.Name, self.Options, self.Include, self.Exclude)
-    
+
+EnabledResources = [Director, FileSet, Device, Client ]
+
